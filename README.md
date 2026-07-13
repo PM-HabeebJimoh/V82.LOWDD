@@ -101,7 +101,7 @@ python3 app.py
 
 ## Environment
 
-Set in `.env.live` (auto-loaded by `start.sh`):
+Set as Replit Secrets (never commit real values to the repo):
 
 | Variable | Required | Default |
 |---|---|---|

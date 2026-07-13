@@ -30,7 +30,9 @@ logger = logging.getLogger('live-test')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Load .env.live if it exists
+# Optionally load a local .env.live for manual/offline runs outside Replit.
+# On Replit, credentials come from Replit Secrets and are already in os.environ —
+# never commit a real .env.live file to the repo.
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env.live')
 if os.path.exists(env_path):
     for line in open(env_path):
@@ -46,7 +48,7 @@ if os.path.exists(env_path):
 # Required env vars
 for v in ['IG_USERNAME', 'IG_PASSWORD', 'IG_API_KEY']:
     if v not in os.environ:
-        print(f'  ✗ Missing env var {v} — please set up .env.live first')
+        print(f'  ✗ Missing env var {v} — set it in Replit Secrets (or a local .env.live for offline runs)')
         sys.exit(1)
 
 from backend.api.ig_routes import get_ig

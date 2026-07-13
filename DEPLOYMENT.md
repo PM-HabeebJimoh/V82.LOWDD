@@ -3,18 +3,18 @@
 ## Quick Start
 
 1. **Import to Replit** (or clone to a new Repl)
-2. **Set environment variables** in Replit Secrets tab:
-   - `IG_USERNAME` = `ryofukushi`
-   - `IG_PASSWORD` = `Jhb@704235`
-   - `IG_API_KEY` = `c3664816bdbd08eebaf6805456e2520e69cf4005`
-   - `IG_ACCOUNT_TYPE` = `DEMO`
-   - `IG_ACCOUNT_NUMBER` = `Z6CQD4`
+2. **Set environment variables** in Replit Secrets tab (never commit real values to the repo):
+   - `IG_USERNAME` = your IG account email/username
+   - `IG_PASSWORD` = your IG account password
+   - `IG_API_KEY` = your IG API key from https://labs.ig.com/api-gateway
+   - `IG_ACCOUNT_TYPE` = `DEMO` (or `LIVE` for a real-money account)
+   - `IG_ACCOUNT_NUMBER` = your IG account ID (optional)
 3. **Click Run** — the `.replit` config + `start.sh` handle everything else
 
 ## What `start.sh` does
 
 ```bash
-1. Sources .env.live (IG credentials)
+1. Reads IG credentials from environment (Replit Secrets)
 2. Checks all Python packages are installed (re-installs if missing)
 3. Verifies gunicorn binary exists
 4. Pre-populates probe cache if empty (33 IG-available EPICs)
@@ -30,7 +30,6 @@ This makes the system **resilient to sandbox restarts**: packages and probe cach
 | `app.py` | Entry point (gunicorn imports this) |
 | `start.sh` | Boot script (idempotent) |
 | `gunicorn.conf.py` | Single source of truth for gunicorn settings |
-| `.env.live` | IG credentials |
 | `.replit` | Replit run config |
 | `Procfile` | Heroku-style config (alternative) |
 | `requirements.txt` | Python packages |
@@ -102,7 +101,7 @@ All defaults are in `start.sh` and `gunicorn.conf.py`. Override with env vars:
 | `LIVE_POLL_INTERVAL` | 60 | Seconds between engine ticks |
 | `LOG_LEVEL` | info | gunicorn log verbosity |
 | `IG_ACCOUNT_TYPE` | DEMO | DEMO or LIVE |
-| `IG_ACCOUNT_NUMBER` | Z6CQD4 | Specific account ID |
+| `IG_ACCOUNT_NUMBER` | (unset) | Specific account ID, set as a Replit Secret |
 
 ## Troubleshooting
 

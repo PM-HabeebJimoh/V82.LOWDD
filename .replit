@@ -1,7 +1,9 @@
 run = "sh start.sh"
+modules = ["python-3.11"]
 
 [nix]
 channel = "stable-23_11"
+packages = ["glibcLocales"]
 
 [deployment]
 run = ["sh", "-c", "gunicorn -c gunicorn.conf.py app:app"]
@@ -27,3 +29,32 @@ commit = ""
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+IG_ACCOUNT_TYPE = "DEMO"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sh start.sh"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"

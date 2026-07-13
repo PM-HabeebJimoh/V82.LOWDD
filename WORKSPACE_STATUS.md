@@ -3,7 +3,7 @@
 ## SYSTEM: 100% LIVE, 24/7, ENTERPRISE GRADE — READY FOR REPLIT-AI-AGENT DEPLOYMENT
 
 - **Mode:** LIVE (no paper, no backtest, no simulation)
-- **Broker:** IG Markets (DEMO account Z6CQD4)
+- **Broker:** IG Markets (DEMO account)
 - **Universe:** 34 EPICs active (30 forex + 4 crypto), 166 EPICs cataloged
 - **Poll interval:** 30s
 - **Per-class logic:** 22 classes, each with unique TP/SL/RR, all tested
@@ -54,8 +54,8 @@ Plus 4 more support tabs: Desk, Markets, Engine, Risk.
 app.py                          ← entry point (Gunicorn imports this)
 start.sh                        ← idempotent boot script (auto-installs, pre-populates cache)
 gunicorn.conf.py                ← single source of truth for gunicorn settings
-.env.live                       ← IG credentials + AUTO_START_LIVE=1, PORT=5000
-.replit                         ← Replit config (uses start.sh)
+.replit                         ← Replit config (uses start.sh); IG credentials live in Replit Secrets, not in a file
+
 Procfile                        ← Heroku-style (uses gunicorn.conf.py)
 replit.nix                      ← nix packages
 requirements.txt                ← flask, flask-cors, gunicorn, trading-ig, requests, munch
@@ -146,7 +146,7 @@ state/                          ← auto-managed
 - index_us: SL=1.5x, TP=3.0x
 - commodity_energy: SL=1.8x, TP=3.6x
 
-## IG AVAILABILITY (DEMO Z6CQD4)
+## IG AVAILABILITY (DEMO account)
 
 **Available (10 classes, 34 EPICs):**
 - forex_major (7/7), forex_minor (19/21), forex_exotic (2/13)
@@ -183,10 +183,9 @@ state/                          ← auto-managed
 curl http://localhost:5000/health
 curl http://localhost:5000/api/live/status
 
-# Restart
+# Restart (credentials come from Replit Secrets / environment, not a file)
 pkill -9 -f gunicorn
 cd /home/user/hydra_prime/v82lowdd_webapp
-source .env.live
 nohup /usr/local/bin/gunicorn -c gunicorn.conf.py app:app > /tmp/v82-stdout.log 2>&1 &
 disown
 
