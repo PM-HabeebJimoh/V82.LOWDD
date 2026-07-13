@@ -538,15 +538,35 @@ class IGBroker:
                     # Already flat
                     pos = p
                     market = p
+                direction = pos.get('direction') or p.get('direction')
+                size = float(pos.get('size', 0) or p.get('size', 0) or 0)
+                level = float(pos.get('level', 0) or p.get('level', 0) or 0)
+                bid = float(market.get('bid', 0) or p.get('bid', 0) or 0)
+                offer = float(market.get('offer', 0) or p.get('offer', 0) or 0)
+                # NOTE: IG's /positions endpoint does NOT return a live 'pnl'
+                # field — it must be derived from the current bid/offer vs.
+                # the position's open level, scaled by IG's own
+                # 'scalingFactor' (the documented conversion from price
+                # points to account-currency P&L for a given instrument).
+                scaling_factor = float(market.get('scalingFactor', 1) or p.get('scalingFactor', 1) or 1)
+                pnl = 0.0
+                if bid and offer and level and size:
+                    if direction == 'BUY':
+                        pnl = (bid - level) * size * scaling_factor
+                    elif direction == 'SELL':
+                        pnl = (level - offer) * size * scaling_factor
                 out.append({
                     'deal_id': pos.get('dealId') or pos.get('deal_id') or p.get('dealId') or p.get('deal_id'),
                     'epic': pos.get('epic') or p.get('epic'),
                     'instrument_name': market.get('instrumentName') or market.get('instrument_name') or p.get('instrumentName') or p.get('instrument_name'),
-                    'direction': pos.get('direction') or p.get('direction'),
-                    'size': float(pos.get('size', 0) or p.get('size', 0) or 0),
-                    'level': float(pos.get('level', 0) or p.get('level', 0) or 0),
+                    'direction': direction,
+                    'size': size,
+                    'level': level,
                     'currency': pos.get('currency') or p.get('currency'),
-                    'pnl': float(p.get('pnl', 0) or 0),
+                    'current_bid': bid,
+                    'current_offer': offer,
+                    'pnl': round(pnl, 2),
+                    'createdDate': pos.get('createdDate') or p.get('createdDate'),
                 })
             self.open_positions = {p['epic']: p for p in out if p.get('epic')}
             return out

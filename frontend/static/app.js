@@ -93,11 +93,16 @@ async function refreshStatus() {
   const total = realized + unrealized;
   $('#kpi-pnl').textContent = fmt$(realized);
   $('#kpi-pnl').className = 'kpi-value ' + (realized > 0 ? 'good' : realized < 0 ? 'bad' : '');
-  $('#kpi-pnl-sub').textContent = `${s.n_closed_trades || 0} trades · 0% win`;
+  const wr = s.risk?.n_trades ? (s.risk.n_wins || 0) / s.risk.n_trades * 100 : null;
+  $('#kpi-pnl-sub').textContent = `${s.n_closed_trades || 0} trades · ${wr == null ? '—' : pct(wr)} win`;
   $('#kpi-open').textContent = s.n_ig_positions;
   $('#kpi-open-sub').textContent = fmt$(unrealized) + ' unrealized';
-  $('#kpi-bal').textContent = fmt$(s.capital);
-  $('#kpi-bal-sub').textContent = `peak ${fmt$(s.peak)}`;
+  // "IG Account" KPI = the REAL broker balance (never the internal risk model)
+  $('#kpi-bal').textContent = fmt$(s.ig_balance);
+  $('#kpi-bal-sub').textContent = `${s.broker_account_type || 'DEMO'} · avail ${fmt$(s.ig_available)}`;
+  // Masthead balance pill — real IG balance, was previously never updated
+  const balEl = $('#balance-val');
+  if (balEl) balEl.textContent = fmt$(s.ig_balance);
   const dd = s.dd_pct || 0;
   $('#kpi-dd').textContent = pct(dd);
   $('#kpi-dd').className = 'kpi-value ' + (dd > 15 ? 'bad' : dd > 8 ? 'warn' : '');
@@ -252,7 +257,7 @@ function renderTicker(s) {
   strip.innerHTML = items.slice(0, 20).map(i => `
     <div class="ticker-item">
       <div class="ticker-sym">${i.sym}</div>
-      <div class="ticker-price">${fmt(i.mid(i.bid, i.offer), 5)}</div>
+      <div class="ticker-price">${fmt(mid(i.bid, i.offer), 5)}</div>
     </div>`).join('');
 }
 function mid(b, o) { return (Number(b) + Number(o)) / 2; }
@@ -270,7 +275,11 @@ function epicToSym(epic) {
   if (epic.includes('DOW'))   return 'DJI';
   if (epic.includes('FTSE'))  return 'FTSE';
   if (epic.includes('NIKKEI'))return 'N225';
-  return epic.split('.')[-2];
+  // Fallback: derive a readable symbol from the epic's instrument segment
+  // (was previously `epic.split('.')[-2]`, invalid JS array indexing that
+  // always returned undefined and could crash the whole ticker render).
+  const parts = epic.split('.');
+  return parts.length >= 3 ? parts[2] : epic;
 }
 
 // ─── EQUITY CHART ──────────────────────────────────────
@@ -343,6 +352,10 @@ async function renderClosedTrades() {
   if (!d) return;
   const tb = $('#closed-tbody');
   $('#closed-count').textContent = `${d.count} CLOSED`;
+  // Profit factor is computed server-side from the FULL trade history
+  // (gross profit / gross loss) — real, not a placeholder.
+  const pfEl = $('#rm-pf');
+  if (pfEl) pfEl.textContent = d.profit_factor ? fmt(d.profit_factor, 2) : (d.count ? '∞' : '—');
   if (!d.trades.length) {
     tb.innerHTML = '<tr><td colspan="4" class="empty">No closed trades yet.</td></tr>';
     return;

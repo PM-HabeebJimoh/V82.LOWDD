@@ -61,25 +61,35 @@ def jsonify_records(records):
     return out
 
 
+import threading
+
 _ig = None
+_ig_lock = threading.Lock()
 _universe_cache: Optional[Dict] = None  # in-memory discovery cache
 
 
 def get_ig() -> IGBroker:
+    """Singleton IGBroker. Guarded by a lock so concurrent requests
+    (e.g. the auto-start thread racing an incoming HTTP request) can't
+    each create their own broker and open duplicate IG sessions."""
     global _ig
-    if _ig is None:
-        _ig = IGBroker(
-            username=os.environ.get('IG_USERNAME'),
-            password=os.environ.get('IG_PASSWORD'),
-            api_key=os.environ.get('IG_API_KEY'),
-            acc_type=os.environ.get('IG_ACCOUNT_TYPE', 'DEMO'),
-            acc_number=os.environ.get('IG_ACCOUNT_NUMBER'),
-        )
-        if _ig._has_credentials():
-            try:
-                _ig.connect()
-            except Exception as e:
-                logger.warning(f"IG connect at startup failed: {e}")
+    if _ig is not None:
+        return _ig
+    with _ig_lock:
+        if _ig is None:
+            broker = IGBroker(
+                username=os.environ.get('IG_USERNAME'),
+                password=os.environ.get('IG_PASSWORD'),
+                api_key=os.environ.get('IG_API_KEY'),
+                acc_type=os.environ.get('IG_ACCOUNT_TYPE', 'DEMO'),
+                acc_number=os.environ.get('IG_ACCOUNT_NUMBER'),
+            )
+            if broker._has_credentials():
+                try:
+                    broker.connect()
+                except Exception as e:
+                    logger.warning(f"IG connect at startup failed: {e}")
+            _ig = broker
     return _ig
 
 

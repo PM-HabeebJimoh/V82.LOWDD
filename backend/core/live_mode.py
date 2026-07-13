@@ -189,6 +189,7 @@ class LiveEngine:
         self.start_time: Optional[datetime] = None
         self.last_poll_time: Optional[datetime] = None
         self.last_bar_time: Optional[datetime] = None
+        self.last_account_refresh: Optional[datetime] = None
 
         self.n_signals = 0
         self.n_orders = 0
@@ -803,12 +804,29 @@ class LiveEngine:
             return False
 
     # ─── Main loop tick ─────────────────────────────────
+    def _refresh_ig_account_if_due(self, interval_seconds: int = 60):
+        """Periodically pull the REAL account balance/available/P&L from
+        IG so the dashboard never shows stale or simulated numbers.
+        Cheap, non-trading API call — safe to run every ~60s."""
+        if not self.broker or not getattr(self.broker, 'connected', False):
+            return
+        now = datetime.now()
+        if (self.last_account_refresh and
+                (now - self.last_account_refresh).total_seconds() < interval_seconds):
+            return
+        try:
+            self.broker.get_account_summary()
+            self.last_account_refresh = now
+        except Exception as e:
+            logger.debug(f"IG account refresh failed: {e}")
+
     def tick(self) -> dict:
         """One pass: sync positions, scan current batch, also do a
         'background' poll of any symbol that hasn't been polled in
         a long time so ALL 166+ instruments get signals continuously.
         Does NOT take self._lock — relies on atomic state updates
         from request threads."""
+        self._refresh_ig_account_if_due()
         self.sync_ig_positions()
         # Rotate the universe batch if we have a rotator
         if self.rotator:
@@ -1007,6 +1025,9 @@ class LiveEngine:
                 class_coverage[cls]['with_bars'] += 1
         # Broker health
         broker_health = self.broker.get_health() if hasattr(self.broker, 'get_health') else {}
+        # REAL IG account figures (not simulated) — this is what should be
+        # shown anywhere the UI says "IG ACCOUNT" or "Balance".
+        acct = getattr(self.broker, 'account_info', {}) if self.broker else {}
         return {
             'mode': 'live',
             'running': self.running,
@@ -1042,6 +1063,17 @@ class LiveEngine:
             'broker_account_type': getattr(self.broker, 'acc_type', 'N/A') if self.broker else 'N/A',
             'broker_health': broker_health,
             'class_coverage': dict(class_coverage),
+            # Real IG account data (source of truth — never simulated)
+            'ig_balance': acct.get('balance', 0),
+            'ig_available': acct.get('available', 0),
+            'ig_deposit': acct.get('deposit', 0),
+            'ig_profit_loss': acct.get('profit_loss', 0),
+            'ig_currency': acct.get('currency', ''),
+            'ig_account_id': acct.get('account_id', ''),
+            # Internal risk-sizing model (used only to compute position
+            # sizes / drawdown limits — seeded from the real IG balance at
+            # startup, but tracked independently as trades close). Not the
+            # same thing as the live IG balance above.
             'capital': equity,
             'initial_capital': self.risk.state.initial_capital if self.risk else 10000,
             'peak': self.risk.state.peak_capital if self.risk else equity,

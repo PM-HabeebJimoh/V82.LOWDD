@@ -123,6 +123,14 @@ def create_app() -> Flask:
         'starting': False,
     }
     app.config['live'] = live_state
+    # Guards _get_engine() so concurrent requests (e.g. the auto-start
+    # background thread racing an incoming HTTP request) can't each build
+    # their own LiveEngine. Without this, whichever engine loses the race
+    # to be stored in live_state['engine'] is the one every future request
+    # sees — but .start() was called on the OTHER (discarded) instance, so
+    # the dashboard shows "STOPPED" forever even though an orphaned engine
+    # is quietly polling IG in the background.
+    _engine_build_lock = threading.Lock()
 
     @app.route('/')
     def index():
@@ -195,10 +203,14 @@ def create_app() -> Flask:
             ),
         })
 
+    _broker_build_lock = threading.Lock()
+
     def _get_broker():
         if live_state['broker'] is None:
-            from backend.api.ig_routes import get_ig
-            live_state['broker'] = get_ig()
+            with _broker_build_lock:
+                if live_state['broker'] is None:
+                    from backend.api.ig_routes import get_ig
+                    live_state['broker'] = get_ig()
         return live_state['broker']
 
     def _bars_fn(epic: str, num_points: int = 200):
@@ -222,8 +234,21 @@ def create_app() -> Flask:
             return None
 
     def _make_risk():
+        # Seed the risk-sizing model from the REAL IG account balance so
+        # position sizing and drawdown tracking are proportional to what's
+        # actually in the account, not a hardcoded fake number.
+        broker = _get_broker()
+        if not broker.connected:
+            broker.connect()
+        real_balance = broker.account_info.get('balance', 0) if broker.connected else 0
+        seed_capital = real_balance if real_balance and real_balance > 0 else 10000.0
+        if not real_balance:
+            logger.warning(
+                "Could not read real IG balance to seed risk model; "
+                "falling back to $10,000 placeholder until IG connects."
+            )
         return RiskManager(
-            initial_capital=10000.0,
+            initial_capital=seed_capital,
             risk_per_trade=DEFAULT_PARAMS['risk_per_trade'],
             max_dd_threshold=DEFAULT_PARAMS['max_dd_threshold'],
             daily_loss_limit_pct=DEFAULT_PARAMS['daily_loss_limit_pct'],
@@ -232,6 +257,14 @@ def create_app() -> Flask:
     def _get_engine() -> LiveEngine:
         if live_state['engine'] is not None:
             return live_state['engine']
+        with _engine_build_lock:
+            # Re-check: another thread may have finished building the
+            # engine while we were waiting for the lock.
+            if live_state['engine'] is not None:
+                return live_state['engine']
+            return _build_engine_locked()
+
+    def _build_engine_locked() -> LiveEngine:
         # ── Fast path: return a placeholder engine with the full universe
         # if the first-time setup isn't done yet. The bg thread will
         # populate it. This ensures /api/live/status responds in <50ms
@@ -543,11 +576,16 @@ def create_app() -> Flask:
         total_pnl = sum(h.get('pnl', 0) for h in history)
         wins = sum(1 for h in history if h.get('won'))
         losses = sum(1 for h in history if not h.get('won'))
+        gross_profit = sum(h.get('pnl', 0) for h in history if h.get('pnl', 0) > 0)
+        gross_loss = abs(sum(h.get('pnl', 0) for h in history if h.get('pnl', 0) < 0))
+        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (gross_profit if gross_profit > 0 else 0)
         n = len(history)
         wr = (wins / n * 100) if n else 0
         return jsonify({
             'count': n, 'total_pnl': total_pnl,
             'wins': wins, 'losses': losses, 'win_rate': wr,
+            'gross_profit': gross_profit, 'gross_loss': gross_loss,
+            'profit_factor': profit_factor,
             'returned': len(page), 'offset': offset, 'limit': limit,
             'trades': page,
         })
