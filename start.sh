@@ -3,9 +3,6 @@
 # Idempotent: safe to run multiple times.
 # Works in Replit, sandbox, Docker, bare metal.
 
-set -a
-source "$(dirname "$0")/.env.live"
-set +a
 cd "$(dirname "$0")"
 
 # ── 1. Ensure all Python packages are installed ────────────────

@@ -11,6 +11,7 @@ state/cache/*.pkl
 logs/*.csv
 logs/*.log
 .DS_Store
+.env.live
 .venv/
 venv/
 env/

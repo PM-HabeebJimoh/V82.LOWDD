@@ -24,3 +24,6 @@ pattern = "**/*.py"
 [gitHubImport]
 requiredRepo = ""
 commit = ""
+
+[agent]
+expertMode = true
