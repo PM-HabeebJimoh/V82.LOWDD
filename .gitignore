@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.coverage
+# State files (regenerated on startup)
+backend/state/*.pkl
+backend/state/*.lock
+backend/state/*.tmp
+state/cache/*.pkl
+logs/*.csv
+logs/*.log
+.DS_Store
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+# Editor
+.idea/
+.vscode/
+*.swp

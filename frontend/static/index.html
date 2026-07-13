@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HYDRA-PRIME · V82.LOWDD · ENTERPRISE TRADING APPLICATION</title>
+<style>
+/* ================================================================
+   V82.LOWDD — GRADE A ENTERPRISE TRADING APPLICATION
+   Full Bloomberg-Terminal-grade layout.
+   ================================================================ */
+:root {
+  --bg-0:       #050810;
+  --bg-1:       #0a1020;
+  --bg-2:       #0f1830;
+  --bg-3:       #16223e;
+  --bg-hover:   #1c2b4d;
+  --line:       #1f2c50;
+  --line-strong:#2c3e6e;
+  --txt:        #e7ecf5;
+  --txt-dim:    #8492b0;
+  --txt-mute:   #5a6883;
+  --accent:     #00d1b2;
+  --accent-2:   #5b8cff;
+  --accent-3:   #9d6dff;
+  --accent-4:   #ffb547;
+  --good:       #21c97a;
+  --good-bg:    rgba(33, 201, 122, 0.12);
+  --bad:        #ff5a6e;
+  --bad-bg:     rgba(255, 90, 110, 0.12);
+  --warn:       #ffb547;
+  --warn-bg:    rgba(255, 181, 71, 0.12);
+  --neutral:    #6a7388;
+  --info:       #5b8cff;
+  --grid:       rgba(91, 140, 255, 0.06);
+  --glow:       0 0 20px rgba(0, 209, 178, 0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg-0);
+  color: var(--txt);
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-feature-settings: 'tnum' 1, 'cv02' 1;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+body { min-height: 100vh; }
+
+/* ---- MASTHEAD (Bloomberg-style) ---- */
+.masthead {
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(180deg, var(--bg-2) 0%, var(--bg-1) 100%);
+  border-bottom: 1px solid var(--line-strong);
+}
+.masthead-row {
+  display: flex; align-items: center; height: 56px;
+  padding: 0 20px; gap: 24px;
+}
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  padding-right: 20px; border-right: 1px solid var(--line);
+  height: 100%;
+}
+.brand-logo {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: linear-gradient(135deg, #00d1b2 0%, #5b8cff 50%, #9d6dff 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; color: #000; font-size: 16px; letter-spacing: -1px;
+  box-shadow: var(--glow);
+}
+.brand-text { line-height: 1.1; }
+.brand-name { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; }
+.brand-sub { font-size: 10px; color: var(--txt-dim); text-transform: uppercase; letter-spacing: 1.5px; }
+
+.ticker-strip {
+  display: flex; align-items: center; gap: 0; flex: 1;
+  overflow: hidden; height: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+          mask-image: linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%);
+}
+.ticker-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; height: 100%;
+  border-right: 1px solid var(--line);
+  white-space: nowrap; min-width: 130px;
+  cursor: pointer; transition: background 0.1s;
+}
+.ticker-item:hover { background: var(--bg-hover); }
+.ticker-sym { font-size: 11px; font-weight: 700; color: var(--txt); letter-spacing: 0.3px; }
+.ticker-price { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.masthead-right { display: flex; align-items: center; gap: 14px; padding-left: 20px; border-left: 1px solid var(--line); height: 100%; }
+.system-state {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 6px 12px; border-radius: 5px;
+  background: var(--bg-2); border: 1px solid var(--line);
+}
+.system-state .dot { width: 8px; height: 8px; border-radius: 50%; }
+.system-state.live { color: var(--good); border-color: rgba(33, 201, 122, 0.3); }
+.system-state.live .dot { background: var(--good); box-shadow: 0 0 8px var(--good); animation: pulse 1.6s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
+
+.balance-pill { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.balance-pill .lbl { font-size: 9px; color: var(--txt-dim); text-transform: uppercase; letter-spacing: 1px; }
+.balance-pill .val { font-size: 15px; font-weight: 700; color: var(--accent); }
+.clock { font-size: 12px; color: var(--txt-dim); font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+
+/* ---- LAYOUT ---- */
+.layout { display: flex; min-height: calc(100vh - 56px); }
+.sidebar {
+  width: 70px; background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; padding: 8px 0;
+  gap: 2px;
+}
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 6px; cursor: pointer;
+  color: var(--txt-mute); font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  border-left: 2px solid transparent; transition: all 0.1s;
+}
+.tab:hover { color: var(--txt-dim); background: var(--bg-2); }
+.tab.active { color: var(--accent); border-left-color: var(--accent); background: var(--bg-2); }
+.tab-icon { font-size: 17px; }
+.tab-badge { display: inline-block; padding: 1px 4px; font-size: 8px;
+             background: var(--accent); color: var(--bg-0); border-radius: 8px;
+             font-weight: 800; min-width: 16px; text-align: center; }
+
+.main { flex: 1; padding: 16px; overflow-y: auto; max-height: calc(100vh - 56px); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ---- PANELS ---- */
+.panel {
+  background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: 6px; margin-bottom: 12px; overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.panel-title {
+  font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--txt);
+}
+.panel-title .badge {
+  display: inline-block; margin-left: 8px; padding: 2px 6px; font-size: 9px;
+  background: var(--accent); color: var(--bg-0); border-radius: 3px;
+  font-weight: 800;
+}
+.panel-body { padding: 14px; }
+.panel-body.dense { padding: 0; }
+.panel-body.scroller { max-height: 320px; overflow-y: auto; }
+.panel-body.scroller-lg { max-height: 520px; overflow-y: auto; }
+
+/* ---- KPI TILES ---- */
+.kpi-row { display: grid; gap: 8px; margin-bottom: 12px; }
+.kpi-row.cols-4 { grid-template-columns: repeat(4, 1fr); }
+.kpi-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+.kpi-row.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.kpi-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.kpi {
+  background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: 6px; padding: 12px 14px;
+  position: relative; overflow: hidden;
+}
+.kpi::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--line);
+}
+.kpi.live::before { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.kpi.warn::before { background: var(--warn); }
+.kpi.bad::before { background: var(--bad); }
+.kpi-label {
+  font-size: 9px; color: var(--txt-dim); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px;
+}
+.kpi-value {
+  font-size: 22px; font-weight: 800; color: var(--txt);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+.kpi-value.good { color: var(--good); }
+.kpi-value.bad { color: var(--bad); }
+.kpi-value.warn { color: var(--warn); }
+.kpi-value.accent { color: var(--accent); }
+.kpi-sub { font-size: 10px; color: var(--txt-dim); margin-top: 4px; }
+
+/* ---- GRID LAYOUTS ---- */
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.row-23 { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.row-32 { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+@media (max-width: 1200px) {
+  .row-2, .row-3, .row-23, .row-32 { grid-template-columns: 1fr; }
+  .kpi-row.cols-4, .kpi-row.cols-5, .kpi-row.cols-6 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ---- TABLES ---- */
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th {
+  text-align: left; padding: 7px 10px; color: var(--txt-dim);
+  border-bottom: 1px solid var(--line);
+  font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.2px;
+  background: var(--bg-2); position: sticky; top: 0; z-index: 5;
+}
+tbody td {
+  padding: 7px 10px; border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+tbody tr { cursor: pointer; transition: background 0.1s; }
+tbody tr:hover { background: var(--bg-2); }
+tbody tr:last-child td { border-bottom: none; }
+.pos { color: var(--good); }
+.neg { color: var(--bad); }
+.neu { color: var(--txt-dim); }
+.num { text-align: right; }
+.center { text-align: center; }
+
+/* ---- BADGES ---- */
+.badge {
+  display: inline-block; padding: 2px 6px; font-size: 9px; font-weight: 800;
+  border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+.badge.buy { background: var(--good-bg); color: var(--good); }
+.badge.sell { background: var(--bad-bg); color: var(--bad); }
+.badge.bull { background: rgba(0, 209, 178, 0.12); color: var(--accent); }
+.badge.bear { background: var(--bad-bg); color: var(--bad); }
+.badge.neutral { background: rgba(106, 115, 136, 0.12); color: var(--neutral); }
+.badge.live { background: rgba(33, 201, 122, 0.12); color: var(--good); }
+.badge.filled { background: var(--good-bg); color: var(--good); }
+.badge.rejected { background: var(--bad-bg); color: var(--bad); }
+.badge.pending { background: var(--warn-bg); color: var(--warn); }
+.badge.closed { background: rgba(91, 140, 255, 0.12); color: var(--info); }
+
+/* ---- BUTTONS ---- */
+.btn {
+  background: var(--bg-2); color: var(--txt); border: 1px solid var(--line-strong);
+  padding: 7px 14px; border-radius: 5px; cursor: pointer;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+  text-transform: uppercase; transition: all 0.1s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); background: var(--bg-hover); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #000; border-color: var(--accent); }
+.btn.primary:hover { background: #00b89c; }
+.btn.danger { color: var(--bad); border-color: rgba(255, 90, 110, 0.4); }
+.btn.danger:hover { background: var(--bad); color: #000; }
+.btn.success { color: var(--good); border-color: rgba(33, 201, 122, 0.4); }
+.btn.success:hover { background: var(--good); color: #000; }
+.btn.sm { padding: 4px 8px; font-size: 10px; }
+.btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.input, .select {
+  background: var(--bg-0); color: var(--txt);
+  border: 1px solid var(--line-strong); border-radius: 4px;
+  padding: 7px 10px; font-size: 12px; font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.input:focus, .select:focus { outline: none; border-color: var(--accent); }
+.input::placeholder { color: var(--txt-mute); }
+
+.form-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.form-row > * { display: flex; align-items: center; gap: 6px; }
+.form-row label { font-size: 10px; color: var(--txt-dim); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+
+/* ---- RISK GAUGE ---- */
+.gauge { position: relative; width: 100%; height: 80px; }
+.gauge-track {
+  position: absolute; left: 0; right: 0; top: 50%; height: 8px;
+  background: var(--bg-2); border-radius: 4px; overflow: hidden;
+  transform: translateY(-50%);
+}
+.gauge-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--good) 0%, var(--warn) 50%, var(--bad) 100%);
+}
+.gauge-marker {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 4px; height: 24px; background: var(--txt);
+  border-radius: 2px; box-shadow: 0 0 8px var(--accent);
+  z-index: 2;
+}
+.gauge-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9px; color: var(--txt-dim); margin-top: 8px;
+  text-transform: uppercase; font-weight: 700; letter-spacing: 1px;
+}
+
+.empty { text-align: center; padding: 40px 20px; color: var(--txt-dim); font-size: 12px; }
+.spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid var(--line); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast-container {
+  position: fixed; top: 70px; right: 20px; z-index: 200;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--bg-2); border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  padding: 10px 14px; border-radius: 4px;
+  font-size: 12px; min-width: 280px; max-width: 360px;
+  animation: slideIn 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.toast.good { border-left-color: var(--good); }
+.toast.bad { border-left-color: var(--bad); }
+.toast.warn { border-left-color: var(--warn); }
+@keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.chart-wrap { width: 100%; height: 280px; position: relative; }
+.chart-wrap svg { width: 100%; height: 100%; display: block; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.chart-area { fill: url(#equity-gradient); }
+.chart-grid { stroke: rgba(91, 140, 255, 0.08); stroke-width: 1; }
+.chart-axis { stroke: var(--line); stroke-width: 1; }
+.chart-text { fill: var(--txt-dim); font-size: 10px; font-family: inherit; }
+.chart-line-pos { stroke: var(--good); }
+.chart-line-neg { stroke: var(--bad); }
+
+/* ---- MODAL ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(5, 8, 16, 0.85);
+  z-index: 300; display: none; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-backdrop.active { display: flex; }
+.modal {
+  background: var(--bg-1); border: 1px solid var(--line-strong);
+  border-radius: 8px; width: 720px; max-width: 95vw; max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex; flex-direction: column;
+}
+.modal-head {
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-2);
+}
+.modal-title { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+.modal-close {
+  background: none; border: none; color: var(--txt-dim);
+  cursor: pointer; font-size: 18px; line-height: 1;
+}
+.modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+.modal-foot { padding: 12px 18px; border-top: 1px solid var(--line); display: flex; gap: 8px; justify-content: flex-end; }
+
+.scroll-y { overflow-y: auto; }
+.h-divider { height: 1px; background: var(--line); margin: 8px 0; }
+.text-dim { color: var(--txt-dim); }
+.text-good { color: var(--good); }
+.text-bad { color: var(--bad); }
+.mono { font-family: 'SF Mono', Menlo, Consolas, monospace; }
+.tag { display: inline-block; padding: 1px 6px; font-size: 9px; font-weight: 800;
+       text-transform: uppercase; letter-spacing: 0.5px; border-radius: 3px;
+       background: var(--bg-2); color: var(--txt-dim); border: 1px solid var(--line); }
+.tag.live { background: var(--good-bg); color: var(--good); border-color: rgba(33, 201, 122, 0.3); }
+.tag.warn { background: var(--warn-bg); color: var(--warn); border-color: rgba(255, 181, 71, 0.3); }
+.tag.bull { background: rgba(0, 209, 178, 0.12); color: var(--accent); }
+.tag.bear { background: var(--bad-bg); color: var(--bad); }
+.tag.info { background: rgba(91, 140, 255, 0.12); color: var(--info); }
+
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.gap-4 { gap: 4px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.center { align-items: center; }
+.between { justify-content: space-between; }
+.col { flex-direction: column; }
+.shortcut {
+  display: inline-block; padding: 1px 5px; font-size: 9px; font-weight: 700;
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 3px; color: var(--txt-dim);
+  margin-left: 6px; font-family: 'SF Mono', monospace;
+}
+
+/* ---- DETAIL CARD ---- */
+.detail-card {
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: 6px; padding: 14px; margin-bottom: 10px;
+}
+.detail-card .title {
+  font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--txt-dim); margin-bottom: 8px;
+}
+.detail-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 16px;
+  font-size: 12px;
+}
+.detail-grid .k { color: var(--txt-dim); }
+.detail-grid .v { color: var(--txt); font-weight: 600; }
+.detail-grid .v.good { color: var(--good); }
+.detail-grid .v.bad { color: var(--bad); }
+
+/* ---- TINY STAT BOX ---- */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-top: 6px;
+}
+.stat-grid .stat {
+  background: var(--bg-1); border: 1px solid var(--line);
+  padding: 8px 10px; border-radius: 4px;
+}
+.stat-grid .stat .l { font-size: 9px; color: var(--txt-dim);
+                       text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+.stat-grid .stat .v { font-size: 14px; font-weight: 700; margin-top: 2px;
+                       font-variant-numeric: tabular-nums; }
+
+/* ---- SPARKLINE ---- */
+.spark { width: 80px; height: 24px; }
+.spark path { fill: none; stroke-width: 1.5; }
+.spark path.up { stroke: var(--good); }
+.spark path.down { stroke: var(--bad); }
+.spark path.neu { stroke: var(--neutral); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ MASTHEAD ═══════════ -->
+<div class="masthead">
+  <div class="masthead-row">
+    <div class="brand">
+      <div class="brand-logo">H</div>
+      <div class="brand-text">
+        <div class="brand-name">HYDRA-PRIME</div>
+        <div class="brand-sub">V82.LOWDD · Enterprise · 24/7</div>
+      </div>
+    </div>
+    <div class="ticker-strip" id="ticker-strip"></div>
+    <div class="masthead-right">
+      <div class="system-state offline" id="conn-state">
+        <div class="dot"></div>
+        <div class="lbl">Offline</div>
+      </div>
+      <div class="balance-pill">
+        <div class="lbl">IG Balance</div>
+        <div class="val" id="balance-val">$0.00</div>
+      </div>
+      <div class="clock" id="clock">— UTC</div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- ═══════════ LEFT RAIL NAV ═══════════ -->
+  <div class="sidebar">
+    <div class="tab active" data-tab="desk" title="Trading Desk (1)">
+      <div class="tab-icon">⌘</div>
+      <div>Desk</div>
+    </div>
+    <div class="tab" data-tab="markets" title="Markets (2)">
+      <div class="tab-icon">◆</div>
+      <div>Markets</div>
+    </div>
+    <div class="tab" data-tab="engine" title="Engine (3)">
+      <div class="tab-icon">▶</div>
+      <div>Engine</div>
+    </div>
+    <div class="tab" data-tab="signals" title="Signals (4)">
+      <div class="tab-icon">∑</div>
+      <div>Signals</div>
+      <div class="tab-badge" id="signals-badge">0</div>
+    </div>
+    <div class="tab" data-tab="opps" title="Opportunities (5)">
+      <div class="tab-icon">⊕</div>
+      <div>Opps</div>
+      <div class="tab-badge" id="opps-badge">0</div>
+    </div>
+    <div class="tab" data-tab="positions" title="Positions (6)">
+      <div class="tab-icon">▣</div>
+      <div>Positions</div>
+    </div>
+    <div class="tab" data-tab="history" title="History (7)">
+      <div class="tab-icon">≡</div>
+      <div>History</div>
+    </div>
+    <div class="tab" data-tab="risk" title="Risk (8)">
+      <div class="tab-icon">⚙</div>
+      <div>Risk</div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ═══════════ DESK ═══════════ -->
+    <div class="tab-content active" id="tab-desk">
+      <div class="kpi-row cols-4">
+        <div class="kpi live">
+          <div class="kpi-label">Realised P&L</div>
+          <div class="kpi-value" id="kpi-pnl">$0.00</div>
+          <div class="kpi-sub" id="kpi-pnl-sub">0 trades</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Open Positions</div>
+          <div class="kpi-value accent" id="kpi-open">0</div>
+          <div class="kpi-sub" id="kpi-open-sub">$0 unrealized</div>
+        </div>
+        <div class="kpi live">
+          <div class="kpi-label">IG Account</div>
+          <div class="kpi-value" id="kpi-bal">$0.00</div>
+          <div class="kpi-sub" id="kpi-bal-sub">DEMO</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Drawdown</div>
+          <div class="kpi-value" id="kpi-dd">0.00%</div>
+          <div class="kpi-sub">Hard limit: 20.00%</div>
+        </div>
+      </div>
+      <div class="kpi-row cols-6">
+        <div class="kpi"><div class="kpi-label">Engine</div>
+          <div class="kpi-value" id="kpi-engine" style="font-size:16px;">—</div>
+          <div class="kpi-sub" id="kpi-engine-sub">—</div></div>
+        <div class="kpi"><div class="kpi-label">Signals (lifetime)</div>
+          <div class="kpi-value" id="kpi-signals-total">0</div>
+          <div class="kpi-sub" id="kpi-signals-sub">every forecast</div></div>
+        <div class="kpi"><div class="kpi-label">Opportunities</div>
+          <div class="kpi-value" id="kpi-opps-total">0</div>
+          <div class="kpi-sub" id="kpi-opps-sub">submitted to IG</div></div>
+        <div class="kpi"><div class="kpi-label">Universe</div>
+          <div class="kpi-value" id="kpi-universe">0</div>
+          <div class="kpi-sub" id="kpi-universe-sub">EPICs scanned</div></div>
+        <div class="kpi"><div class="kpi-label">Win Rate</div>
+          <div class="kpi-value" id="kpi-wr">0.0%</div>
+          <div class="kpi-sub" id="kpi-wl">0W / 0L</div></div>
+        <div class="kpi"><div class="kpi-label">Orders / Fills</div>
+          <div class="kpi-value" id="kpi-of">0/0</div>
+          <div class="kpi-sub" id="kpi-of-sub">real IG</div></div>
+      </div>
+
+      <div class="row-23">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Equity Curve <span class="badge live">LIVE</span></div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap">
+              <svg id="equity-svg" viewBox="0 0 800 280" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="equity-gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00d1b2" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="#00d1b2" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <g id="equity-grid"></g>
+                <g id="equity-content"></g>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Risk Monitor</div>
+          </div>
+          <div class="panel-body">
+            <div class="gauge">
+              <div class="gauge-track"><div class="gauge-fill" id="dd-fill" style="width:0%"></div></div>
+              <div class="gauge-marker" id="dd-marker" style="left:0%"></div>
+              <div class="gauge-labels">
+                <span>0%</span><span>5%</span><span>10%</span><span>15%</span>
+                <span class="text-bad">20% (HALT)</span>
+              </div>
+            </div>
+            <div class="h-divider"></div>
+            <table>
+              <tbody>
+                <tr><td class="text-dim">Initial capital</td><td class="num" id="rm-init">$10,000.00</td></tr>
+                <tr><td class="text-dim">Current equity</td><td class="num" id="rm-equity">$10,000.00</td></tr>
+                <tr><td class="text-dim">Peak equity</td><td class="num" id="rm-peak">$10,000.00</td></tr>
+                <tr><td class="text-dim">Total trades</td><td class="num" id="rm-trades">0</td></tr>
+                <tr><td class="text-dim">Wins / Losses</td><td class="num" id="rm-wl">0 / 0</td></tr>
+                <tr><td class="text-dim">Profit factor</td><td class="num" id="rm-pf">—</td></tr>
+                <tr><td class="text-dim">Avg trade</td><td class="num" id="rm-avg">$0.00</td></tr>
+                <tr><td class="text-dim">Status</td><td><span class="badge live" id="rm-status">ACTIVE</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Per-Class Coverage <span class="tag info">22 classes · 166 EPICs</span></div>
+          </div>
+          <div class="panel-body" id="desk-class-coverage" style="padding: 8px 14px;">
+            <div class="empty">Loading…</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">IG Broker Health</div>
+            <span class="tag live" id="ig-state">—</span>
+          </div>
+          <div class="panel-body" style="padding: 8px 14px;">
+            <div class="stat-grid" id="desk-broker-health" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="empty">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Open Positions</div>
+            <span class="tag live" id="open-count">0 LIVE</span>
+          </div>
+          <div class="panel-body dense scroller">
+            <table>
+              <thead><tr>
+                <th>Market</th><th>Side</th><th class="num">Size</th>
+                <th class="num">Entry</th><th class="num">P&L</th><th>Action</th>
+              </tr></thead>
+              <tbody id="open-tbody">
+                <tr><td colspan="6" class="empty">No open positions.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Recent Closed Trades</div>
+            <span class="tag" id="closed-count">0 CLOSED</span>
+          </div>
+          <div class="panel-body dense scroller">
+            <table>
+              <thead><tr>
+                <th>Exit (UTC)</th><th>Market</th><th>Side</th>
+                <th class="num">P&L</th>
+              </tr></thead>
+              <tbody id="closed-tbody">
+                <tr><td colspan="4" class="empty">No closed trades yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ MARKETS ═══════════ -->
+    <div class="tab-content" id="tab-markets">
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Live Universe</div>
+            <div class="form-row">
+              <button class="btn sm" id="markets-probe">↻ Re-probe</button>
+              <span class="text-dim" id="markets-count">— EPICs</span>
+            </div>
+          </div>
+          <div class="panel-body dense scroller-lg" id="markets-list"><div class="empty">Loading…</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Quick Quote</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-row" style="margin-bottom:10px;">
+              <input type="text" class="input" id="quote-epic" value="CS.D.BITCOIN.CFBMU.IP" style="width:240px;" />
+              <button class="btn primary" id="quote-btn">Get Quote</button>
+            </div>
+            <div id="quote-display"><div class="empty">—</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Search Markets</div>
+            <input type="text" class="input" id="search-q" placeholder="e.g. EURUSD, Bitcoin, Gold" style="width:240px;" />
+            <button class="btn sm" id="search-btn">Search</button>
+          </div>
+          <div class="panel-body dense scroller" id="search-results"><div class="empty">—</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="panel-title">Place Order (manual)</div>
+          </div>
+          <div class="panel-body">
+            <div class="form-row" style="margin-bottom:8px;">
+              <label>EPIC</label>
+              <input type="text" class="input" id="order-epic" value="CS.D.EURUSD.MINI.IP" style="width:220px;" />
+              <label>Side</label>
+              <select class="select" id="order-dir">
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+              </select>
+              <label>Size</label>
+              <input type="number" class="input" id="order-size" value="0.5" step="0.1" style="width:80px;" />
+            </div>
+            <div class="form-row">
+              <button class="btn primary" id="order-submit">Submit</button>
+              <button class="btn danger" id="order-close-all">Close All</button>
+              <span id="order-status" class="text-dim"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ ENGINE ═══════════ -->
+    <div class="tab-content" id="tab-engine">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Engine Control <span class="tag live">LIVE 24/7</span></div>
+        </div>
+        <div class="panel-body">
+          <div class="form-row">
+            <button class="btn primary" id="engine-start">▶ Start</button>
+            <button class="btn danger" id="engine-stop">■ Stop</button>
+            <button class="btn" id="engine-cycle">⚡ Run One Cycle</button>
+            <button class="btn" id="engine-force-all" style="background:rgba(0,209,178,0.15);border-color:var(--accent);">⊕ Force All 22 Classes</button>
+            <span class="h-divider" style="width:1px;height:24px;background:var(--line);margin:0 8px;"></span>
+            <button class="btn" id="engine-probe">↻ Re-probe Universe</button>
+            <span class="text-dim" style="margin-left:12px;" id="engine-mode">Mode: LIVE</span>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-row cols-4">
+        <div class="kpi live"><div class="kpi-label">Engine</div>
+          <div class="kpi-value" id="eng-running" style="font-size:18px;">—</div>
+          <div class="kpi-sub" id="eng-uptime">—</div></div>
+        <div class="kpi"><div class="kpi-label">Universe (current batch)</div>
+          <div class="kpi-value" id="eng-batch-size">0</div>
+          <div class="kpi-sub" id="eng-batch-sub">of total universe</div></div>
+        <div class="kpi"><div class="kpi-label">Total Universe</div>
+          <div class="kpi-value" id="eng-universe-total">0</div>
+          <div class="kpi-sub" id="eng-universe-sub">5 asset classes</div></div>
+        <div class="kpi"><div class="kpi-label">Signals / Opps</div>
+          <div class="kpi-value" id="eng-sop">0/0</div>
+          <div class="kpi-sub">signals / opportunities</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Universe Rotation Batches</div>
+          <span class="tag info" id="eng-rot-info">— batches</span>
+        </div>
+        <div class="panel-body" id="eng-rot-batches"><div class="empty">—</div></div>
+      </div>
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Live Forecasts</div></div>
+          <div class="panel-body dense scroller" id="eng-forecasts">
+            <table>
+              <thead><tr>
+                <th>Market</th><th>Direction</th><th class="num">Close</th>
+                <th class="num">ret_3</th><th class="num">ATR</th>
+              </tr></thead>
+              <tbody><tr><td colspan="5" class="empty">Waiting for bars…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Recent Actions</div></div>
+          <div class="panel-body dense scroller" id="eng-actions"><div class="empty">—</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Per-Class Coverage (22 instrument classes) <span class="tag info">per-class TP/SL applied</span></div>
+        </div>
+        <div class="panel-body" id="eng-class-coverage" style="padding: 8px 14px;">
+          <div class="empty">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ SIGNALS ═══════════ -->
+    <div class="tab-content" id="tab-signals">
+      <div class="kpi-row cols-5">
+        <div class="kpi live"><div class="kpi-label">Total Signals</div>
+          <div class="kpi-value" id="sig-total">0</div>
+          <div class="kpi-sub">all time</div></div>
+        <div class="kpi"><div class="kpi-label">Bullish</div>
+          <div class="kpi-value good" id="sig-bull">0</div>
+          <div class="kpi-sub">trending up</div></div>
+        <div class="kpi"><div class="kpi-label">Bearish</div>
+          <div class="kpi-value bad" id="sig-bear">0</div>
+          <div class="kpi-sub">trending down</div></div>
+        <div class="kpi"><div class="kpi-label">Neutral</div>
+          <div class="kpi-value" id="sig-neu">0</div>
+          <div class="kpi-sub">no signal</div></div>
+        <div class="kpi"><div class="kpi-label">Markets</div>
+          <div class="kpi-value" id="sig-markets">0</div>
+          <div class="kpi-sub">with signals</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">All Signals (chronological)</div>
+          <div class="form-row">
+            <select class="select" id="sig-filter">
+              <option value="">All</option>
+              <option value="BULLISH">Bullish</option>
+              <option value="BEARISH">Bearish</option>
+              <option value="NEUTRAL">Neutral</option>
+            </select>
+            <select class="select" id="sig-limit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="500">500</option>
+            </select>
+            <button class="btn sm" id="sig-refresh">↻</button>
+          </div>
+        </div>
+        <div class="panel-body dense">
+          <div class="scroll-y" style="max-height:560px;">
+            <table>
+              <thead><tr>
+                <th>Time (UTC)</th><th>Market</th><th>EPIC</th>
+                <th>Direction</th><th class="num">Close</th>
+                <th class="num">ret_3</th><th class="num">ATR</th>
+                <th class="num">Streak</th><th class="num">Bars</th>
+              </tr></thead>
+              <tbody id="sig-tbody">
+                <tr><td colspan="9" class="empty">No signals yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ OPPORTUNITIES ═══════════ -->
+    <div class="tab-content" id="tab-opps">
+      <div class="kpi-row cols-5">
+        <div class="kpi live"><div class="kpi-label">Total Opps</div>
+          <div class="kpi-value" id="opp-total">0</div>
+          <div class="kpi-sub">all time</div></div>
+        <div class="kpi"><div class="kpi-label">Opened</div>
+          <div class="kpi-value good" id="opp-opened">0</div>
+          <div class="kpi-sub">filled on IG</div></div>
+        <div class="kpi"><div class="kpi-label">Rejected</div>
+          <div class="kpi-value bad" id="opp-rejected">0</div>
+          <div class="kpi-sub">rejected by IG</div></div>
+        <div class="kpi"><div class="kpi-label">Pending</div>
+          <div class="kpi-value warn" id="opp-pending">0</div>
+          <div class="kpi-sub">in flight</div></div>
+        <div class="kpi"><div class="kpi-label">Win Rate</div>
+          <div class="kpi-value" id="opp-wr">0.0%</div>
+          <div class="kpi-sub">closed outcomes</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">All Opportunities <span class="tag info">click any row for full detail</span></div>
+          <div class="form-row">
+            <select class="select" id="opp-filter-status">
+              <option value="">All</option>
+              <option value="OPENED">Opened</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="PENDING">Pending</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+            <select class="select" id="opp-filter-dir">
+              <option value="">All</option>
+              <option value="BULLISH">Bullish</option>
+              <option value="BEARISH">Bearish</option>
+            </select>
+            <button class="btn sm" id="opp-refresh">↻</button>
+          </div>
+        </div>
+        <div class="panel-body dense">
+          <div class="scroll-y" style="max-height:540px;">
+            <table>
+              <thead><tr>
+                <th>Time (UTC)</th><th>Market</th>
+                <th>Forecast</th><th>Side</th>
+                <th class="num">Entry</th><th class="num">Stop</th>
+                <th class="num">Target</th>
+                <th class="num">Size</th>
+                <th class="num">R:R</th>
+                <th>Status</th>
+              </tr></thead>
+              <tbody id="opp-tbody">
+                <tr><td colspan="10" class="empty">No opportunities yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ POSITIONS ═══════════ -->
+    <div class="tab-content" id="tab-positions">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">IG Open Positions <span class="tag live" id="pos-count-tag">0 LIVE</span></div>
+          <div class="form-row">
+            <button class="btn sm danger" id="pos-close-all">Close All</button>
+            <button class="btn sm" id="pos-refresh">↻ Refresh</button>
+          </div>
+        </div>
+        <div class="panel-body dense scroller">
+          <table>
+            <thead><tr>
+              <th>Market</th><th>Side</th><th class="num">Size</th>
+              <th class="num">Entry</th><th class="num">P&L</th>
+              <th>deal_id</th><th>Action</th>
+            </tr></thead>
+            <tbody id="pos-tbody">
+              <tr><td colspan="7" class="empty">No open positions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ HISTORY ═══════════ -->
+    <div class="tab-content" id="tab-history">
+      <div class="kpi-row cols-4">
+        <div class="kpi live"><div class="kpi-label">Total trades</div>
+          <div class="kpi-value" id="hi-count">0</div>
+          <div class="kpi-sub" id="hi-count-sub">all time</div></div>
+        <div class="kpi"><div class="kpi-label">Total P&L</div>
+          <div class="kpi-value" id="hi-pnl">$0.00</div>
+          <div class="kpi-sub" id="hi-pnl-sub">cumulative</div></div>
+        <div class="kpi"><div class="kpi-label">Win rate</div>
+          <div class="kpi-value" id="hi-wr">0.0%</div>
+          <div class="kpi-sub" id="hi-wl">0W / 0L</div></div>
+        <div class="kpi"><div class="kpi-label">Orders placed</div>
+          <div class="kpi-value" id="hi-orders">0</div>
+          <div class="kpi-sub" id="hi-orders-sub">lifetime</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">All Closed Trades</div>
+          <div class="form-row">
+            <select class="select" id="hi-filter"><option value="all">All</option>
+              <option value="won">Wins</option><option value="lost">Losses</option></select>
+            <button class="btn sm" id="hi-refresh">↻</button>
+            <button class="btn sm" id="hi-export">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div class="panel-body dense">
+          <div class="scroll-y" style="max-height:480px;">
+            <table>
+              <thead><tr>
+                <th>Exit (UTC)</th><th>Market</th><th>EPIC</th><th>Side</th>
+                <th class="num">Entry</th><th class="num">Exit</th>
+                <th class="num">Size</th><th>Exit</th><th class="num">P&L</th>
+              </tr></thead>
+              <tbody id="hi-trades-tbody">
+                <tr><td colspan="9" class="empty">No closed trades yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">All IG Orders (lifetime)</div>
+        </div>
+        <div class="panel-body dense scroller-lg" id="hi-orders-display">
+          <div class="empty">No orders yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ RISK & RULES ═══════════ -->
+    <div class="tab-content" id="tab-risk">
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">1H Forecast (predicts next hour)</div></div>
+          <div class="panel-body">
+<pre style="font-family:'SF Mono',monospace;font-size:11px;line-height:1.7;color:var(--txt-dim);">
+<span style="color:var(--good)">BULLISH</span> = close &gt; MA20 <span style="color:var(--accent)">AND</span> MA20 &gt; MA50
+         <span style="color:var(--accent)">AND</span> ret_3bar &gt; 0
+
+<span style="color:var(--bad)">BEARISH</span> = close &lt; MA20 <span style="color:var(--accent)">AND</span> MA20 &lt; MA50
+         <span style="color:var(--accent)">AND</span> ret_3bar &lt; 0
+
+<span style="color:var(--neutral)">else</span> = NEUTRAL (no trade)
+</pre>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">5-min Signal (entry trigger)</div></div>
+          <div class="panel-body">
+<pre style="font-family:'SF Mono',monospace;font-size:11px;line-height:1.7;color:var(--txt-dim);">
+<span style="color:var(--accent)">if</span> forecast == BULLISH → <span style="color:var(--good)">BUY</span> at close
+<span style="color:var(--accent)">if</span> forecast == BEARISH → <span style="color:var(--bad)">SELL</span> at close
+<span style="color:var(--accent)">if</span> forecast == NEUTRAL  → no trade
+
+Stop    = entry ± <span style="color:var(--warn)">1.0 × ATR(20)</span>
+Target  = entry ± <span style="color:var(--warn)">2.0 × ATR(20)</span>     <span style="color:var(--accent)"># 1:2 R:R</span>
+Hold    = <span style="color:var(--warn)">12 bars</span> max (60 min)
+
+Session filter:
+  <span style="color:var(--accent)">skip</span> Friday after 20:00 UTC
+  <span style="color:var(--accent)">skip</span> Monday before 01:00 UTC
+</pre>
+          </div>
+        </div>
+      </div>
+      <div class="row-2">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Risk (HARD &lt; 20% Max DD)</div></div>
+          <div class="panel-body">
+<pre style="font-family:'SF Mono',monospace;font-size:11px;line-height:1.7;color:var(--txt-dim);">
+risk_per_trade     = <span style="color:var(--warn)">0.1%</span> of capital
+max_dd_threshold   = <span style="color:var(--bad)">20%</span>  <span style="color:var(--bad)">HARD</span>
+daily_loss_limit   = <span style="color:var(--warn)">5%</span>
+max_leverage       = <span style="color:var(--warn)">0.5x</span> (max notional/capital)
+position size      = (cap × risk) / |entry − stop|
+                     capped at max_leverage
+
+<span style="color:var(--accent)">if</span> DD &gt; 20%        → <span style="color:var(--bad)">PAUSE</span> (recover-pause)
+<span style="color:var(var(--accent))">if</span> day_loss &gt; 5%   → <span style="color:var(--bad)">PAUSE</span> for the day
+<span style="color:var(--accent)">if</span> DD &lt; 16%        → <span style="color:var(--accent)">UNPAUSE</span> (recovered)
+
+<span style="color:var(--accent)">⇒ 1 trade cannot lose more than 0.1% of capital.</span>
+</pre>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Architecture</div></div>
+          <div class="panel-body">
+<pre style="font-family:'SF Mono',monospace;font-size:11px;line-height:1.7;color:var(--txt-dim);">
+<span style="color:var(--accent)">IG Markets REST API</span>  (real, live, 24/7)
+  <span style="color:var(--info)">↓</span>
+<span style="color:var(--accent)">IGBroker</span>             (backend/live/ig_broker.py)
+  <span style="color:var(--info)">↓</span>  OHLCV bars, bid/offer, account, orders
+<span style="color:var(--accent)">UniverseRotator</span>      (backend/core/universe_rotator.py)
+  <span style="color:var(--info)">↓</span>  rotates 92+ EPICs in 7 batches (24/7 crypto always first)
+<span style="color:var(--accent)">LiveEngine</span>           (backend/core/live_mode.py)
+  <span style="color:var(--info)">↓</span>  forecast → signal → submit to IG → record opportunity
+<span style="color:var(--accent)">SignalsService</span>      (backend/core/signals_service.py)
+  <span style="color:var(--info)">↓</span>  every signal + every opportunity (full audit trail)
+<span style="color:var(--accent)">RiskManager</span>         (backend/risk/manager.py)
+  <span style="color:var(--info)">↓</span>  HARD 20% DD, 0.1% per trade, 0.5x leverage
+<span style="color:var(--accent)">Flask API</span>           (backend/api/app.py)
+  <span style="color:var(--info)">↓</span>  20+ REST endpoints
+<span style="color:var(--accent)">Dashboard</span>          (frontend/static/)
+  <span style="color:var(--info)">↓</span>  8 tabs: Desk / Markets / Engine / Signals / Opps / Positions / History / Risk
+</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════ OPPORTUNITY DETAIL MODAL ═══════════ -->
+<div class="modal-backdrop" id="opp-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Opportunity Detail</div>
+      <button class="modal-close" onclick="closeOppModal()">×</button>
+    </div>
+    <div class="modal-body" id="opp-modal-body"><div class="empty">—</div></div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeOppModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
