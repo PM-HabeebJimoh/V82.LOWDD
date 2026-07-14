@@ -1,3 +1,5 @@
 - [Lazy singleton race in Flask/gunicorn](lazy-singleton-race.md) — check-then-act `if x is None: x = build()` on shared state is a real race under gthread/multi-request; caused a live trading engine to silently orphan itself.
 - [IG position PnL field](ig-position-pnl-field.md) — IG's `/positions` REST response has no `pnl` field; must compute unrealized P&L from bid/offer/level/scalingFactor.
 - [Risk-model capital vs real broker balance](risk-model-vs-broker-balance.md) — never show an internal risk-sizing model's capital number as if it were the account balance; keep both, label distinctly.
+- [trading_ig conv_resol pandas incompatibility](trading-ig-conv-resol-pandas.md) — historical price fetches via trading_ig silently fail on pandas 2.1.x; needs a monkeypatch.
+- [IG demo account instrument entitlements](ig-demo-account-entitlements.md) — a curated symbol catalog in app code does not mean IG grants market data for all of it; verify per-account.
