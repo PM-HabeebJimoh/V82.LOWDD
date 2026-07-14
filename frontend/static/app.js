@@ -468,7 +468,7 @@ function renderEngine(s) {
       <div class="detail-grid">
         <div class="k">Current batch</div><div class="v">#${r.batch_idx + 1} of ${r.n_batches}</div>
         <div class="k">Total unique symbols</div><div class="v">${r.n_unique_symbols}</div>
-        <div class="k">Always polled (24/7)</div><div class="v" style="font-size:11px;">${r.always_paid.map(e => e.split('.')[2]).join(', ')}</div>
+        <div class="k">Always polled (24/7)</div><div class="v" style="font-size:11px;">${(r.always_polled || r.always_paid || []).map(e => e.split('.')[2]).join(', ') || '—'}</div>
         <div class="k">Asset classes</div><div class="v">forex · crypto · indices · commodities · shares · options · bonds</div>
       </div>
       <div class="h-divider"></div>

@@ -273,30 +273,24 @@ def create_app() -> Flask:
         if not broker.connected:
             broker.connect()
         risk = _make_risk()
-        from backend.live.ig_universe import get_universe_epics
-        full_universe = list(get_universe_epics())
-        # Always include 24/7 crypto first
-        for must in ['CS.D.BITCOIN.CFBMU.IP', 'CS.D.BITCOIN.CFD.IP',
-                     'CS.D.ETHEREUM.CFBMU.IP', 'CS.D.ETHEREUM.CFD.IP']:
-            if must not in full_universe:
-                full_universe.insert(0, must)
+        # FOREX + GOLD ONLY — 42 EPICs, all polled every tick.
+        # universe_rotator.build_batches() returns a single batch with all 42 symbols.
+        from backend.core.universe_rotator import UniverseRotator, ALL_EPICS
+        full_universe = list(ALL_EPICS)
         # Filter to IG-available via probe cache (synchronous — usually fast
         # since the cache file is already populated by start.sh).
         try:
             probe_results = probe_universe(broker, force=False)
             available = [e for e, v in probe_results.items() if v.get('available')]
             if len(available) >= 3:
-                for must in ['CS.D.BITCOIN.CFBMU.IP', 'CS.D.BITCOIN.CFD.IP',
-                             'CS.D.ETHEREUM.CFBMU.IP', 'CS.D.ETHEREUM.CFD.IP']:
-                    if must not in available:
-                        available.insert(0, must)
                 full_universe = available
-                logger.info(f"Probed universe: {len(available)} IG-available EPICs")
+                logger.info(f"Probed universe: {len(available)} IG-available EPICs (forex+gold)")
             else:
-                logger.warning(f"Probe found only {len(available)} EPICs, using full catalog")
+                logger.warning(f"Probe found only {len(available)} EPICs, using full forex+gold catalog")
         except Exception as e:
-            logger.warning(f"probe failed ({e}), using full catalog")
+            logger.warning(f"probe failed ({e}), using full forex+gold catalog")
         live_state['universe'] = full_universe
+        from backend.live.ig_universe import get_universe_names
         engine = LiveEngine(
             broker=broker,
             bars_fn=_bars_fn,
@@ -305,77 +299,52 @@ def create_app() -> Flask:
             universe_resolver=lambda: list(live_state['universe']),
             name_resolver=(lambda e: get_universe_names().get(e, e)),
         )
-        # Seed the engine's universe with the filtered list
-        engine.universe = list(full_universe)
-        engine.all_symbols = list(full_universe)
-        # Build the rotator with all batches covering the full universe
-        from backend.core.universe_rotator import UniverseRotator
+        # Seed the engine with the full forex+gold universe in one batch
+        # (UniverseRotator.build_batches() returns a single batch of all 42).
         engine.rotator = UniverseRotator()
-        # The default batches cover 134 symbols; add the remaining
-        # ones to the closest batch so all 166+ are tracked.
-        all_batches_symbols = set()
-        for b in engine.rotator.batches:
-            all_batches_symbols.update(b)
-        for epic in full_universe:
-            if epic not in all_batches_symbols:
-                # Add to the smallest batch to keep them balanced
-                smallest = min(engine.rotator.batches, key=len)
-                smallest.append(epic)
-                all_batches_symbols.add(epic)
         engine.universe = engine.rotator.current()
+        engine.all_symbols = list(full_universe)
         live_state['engine'] = engine
         return engine
 
     def _probe_universe(force: bool = False) -> List[str]:
-        """Probe IG and update the working universe. Always includes
-        24/7 crypto CFDs (BTC, ETH) even if the probe fails on them.
+        """Probe IG and update the working universe (forex + gold only).
 
-        For 24/7 operation across ALL instruments, the probe
-        discovers all 92+ EPICs from the IG universe. The engine
-        then rotates through them in batches to stay within
-        IG's rate limits.
+        Discovers which of the 42 forex+gold EPICs are live on this
+        specific IG account. Falls back to the full 42-epic list if the
+        probe fails.
         """
-        always_include = ['CS.D.BITCOIN.CFBMU.IP', 'CS.D.ETHEREUM.CFBMU.IP']
+        from backend.core.universe_rotator import ALL_EPICS
+        fallback = list(ALL_EPICS)
         if not live_state['universe'] or force:
             broker = _get_broker()
             try:
                 results = probe_universe(broker, force=force)
                 live_state['probe_results'] = results
-                # Get ALL working EPICs from the full universe
                 working = [e for e, v in results.items() if v.get('available')]
-                # Always include 24/7 crypto
-                for epic in always_include:
-                    if epic not in working:
-                        working.insert(0, epic)
                 if working:
                     live_state['universe'] = working
-                    logger.info(f"Universe: {len(working)} EPICs (FULL coverage: "
-                                f"forex + crypto + commodities + indices)")
+                    logger.info(f"Universe: {len(working)} EPICs (forex+gold only)")
                 else:
-                    live_state['universe'] = list(always_include)
-                    logger.warning(f"No probe results, using {len(always_include)} crypto EPICs")
+                    live_state['universe'] = fallback
+                    logger.warning(f"No probe results, using full {len(fallback)}-EPIC forex+gold catalog")
             except Exception as e:
                 logger.error(f"probe failed: {e}")
-                live_state['universe'] = list(always_include)
+                live_state['universe'] = fallback
         return live_state['universe']
 
     def _probe_universe_fast(force: bool = False) -> List[str]:
-        """Fast universe probe — only test the priority symbols to avoid
-        hammering IG. Use the cached probe for all others. Returns the
-        list of EPICs that IG has confirmed are available."""
-        # The 24/7 crypto + a few major forex are always available
-        # on IG. Don't waste API calls probing them.
+        """Fast universe probe — test only the forex majors + gold to
+        confirm connectivity; assume the rest of the 42-EPIC list is
+        available.  Falls back gracefully if IG is unreachable."""
+        # Forex majors + gold are always available on IG demo/live accounts.
         always_available = [
-            'CS.D.BITCOIN.CFBMU.IP', 'CS.D.BITCOIN.CFD.IP',
-            'CS.D.ETHEREUM.CFBMU.IP',
             'CS.D.EURUSD.MINI.IP', 'CS.D.GBPUSD.MINI.IP', 'CS.D.USDJPY.MINI.IP',
             'CS.D.AUDUSD.MINI.IP', 'CS.D.USDCAD.MINI.IP', 'CS.D.NZDUSD.MINI.IP',
-            'CS.D.IN_GOLD.MFI.IP', 'CS.D.IN_SILVER.MFI.IP',
-            'IX.D.SPTRD.DAILY.IP', 'IX.D.FTSE.DAILY.IP', 'IX.D.DAX.DAILY.IP',
-            'IX.D.NIKKEI.DAILY.IP', 'CC.D.CL.USS.IP',
+            'CS.D.IN_GOLD.MFI.IP',
         ]
-        from backend.live.ig_universe import get_universe_epics
-        all_epics = list(get_universe_epics())
+        from backend.core.universe_rotator import ALL_EPICS
+        all_epics = list(ALL_EPICS)
         # Add the always-available ones
         for epic in always_available:
             if epic not in all_epics:

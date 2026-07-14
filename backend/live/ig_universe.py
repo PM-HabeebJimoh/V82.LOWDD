@@ -278,8 +278,22 @@ def get_universe_by_class() -> Dict[str, List[Dict]]:
 
 
 def get_universe_epics() -> List[str]:
-    """Return just the EPIC codes for the default universe."""
-    return [item['epic'] for item in get_default_universe()]
+    """Return just the EPIC codes for the forex + gold universe.
+
+    Only returns the 41 forex pairs (major/minor/exotic) and spot gold
+    (XAU/USD). All other asset classes are excluded from this build.
+    """
+    forex_gold_keys = {'forex_major', 'forex_minor', 'forex_exotic', 'commodities_metals'}
+    out = []
+    for category, items in DEFAULT_UNIVERSE.items():
+        if category in forex_gold_keys:
+            for item in items:
+                epic = item['epic']
+                # From commodities_metals, include ONLY spot gold
+                if category == 'commodities_metals' and epic != 'CS.D.IN_GOLD.MFI.IP':
+                    continue
+                out.append(epic)
+    return out
 
 
 def get_universe_names() -> Dict[str, str]:

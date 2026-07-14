@@ -183,6 +183,12 @@ class LiveEngine:
         # (for the rotator's "no_drop" guarantee)
         self.last_polled: Dict[str, datetime] = {}
 
+        # Track which EPICs have already had a backfill attempt this session.
+        # Without this, EPICs whose backfill fails (e.g. IG demo historical-data
+        # quota exhausted) would retry on EVERY tick, generating repeated 403s
+        # that also throttle the live /markets/ quote endpoint.
+        self._backfill_attempted: set = set()
+
         # Opportunity tracking
         self._pending_opp_ids: Dict[str, str] = {}
 
@@ -206,26 +212,18 @@ class LiveEngine:
         self._init_rotator()
 
     def _init_rotator(self):
-        """Build the rotator from the resolved universe. If the
-        universe is large, split into batches; otherwise use all."""
-        if not self.universe:
-            return
-        # If we have more than 12 symbols, build batches
-        if len(self.universe) > 12:
-            self.rotator = UniverseRotator()
-            # Override the rotator's batches with our universe split
-            # into batches of ~10 each
-            symbols = list(self.universe)
-            n = len(symbols)
-            batch_size = max(1, n // 5)
-            self.rotator.batches = [symbols[i:i + batch_size]
-                                    for i in range(0, n, batch_size)]
-            self.universe = self.rotator.current()
-            logger.info(f"Rotator: {len(self.rotator.batches)} batches, "
-                        f"batch[0]={self.rotator.batches[0]}")
-        else:
-            self.rotator = None
+        """Build the single-batch forex+gold rotator.
+
+        Always uses build_batches() from universe_rotator (42 forex+gold
+        EPICs in one batch) so every symbol is scanned every 60-second tick.
+        Any universe saved in state is ignored here — _build_engine_locked
+        in app.py is the authoritative source for the working universe.
+        """
+        self.rotator = UniverseRotator()
+        self.universe = self.rotator.current()
         self.all_symbols = list(self.universe)
+        logger.info(f"Rotator initialised: {len(self.rotator.batches)} batch(es), "
+                    f"{len(self.universe)} EPICs (forex+gold only)")
 
     # ─── State persistence ─────────────────────────────
     def _save_state(self):
@@ -438,10 +436,13 @@ class LiveEngine:
     # We seed each symbol once with real IG historical bars the first time
     # it's scanned, then keep extending with live snapshot bars as before.
     def _backfill_history(self, epic: str, resolution: str = 'MINUTE_5',
-                          num_points: int = 288):
-        """Seed self.bars[epic] with ~24h of real IG historical bars
-        (288 x 5-minute candles) so forecasts reflect genuine recent market
-        structure immediately, not just live ticks collected since boot."""
+                          num_points: int = 60):
+        """Seed self.bars[epic] with ~5h of real IG historical bars
+        (60 x 5-minute candles).
+
+        Kept intentionally small (60 bars × 42 EPICs = 2,520 data points)
+        to stay well within IG demo's 10,000 bar/day historical-data
+        allowance. The engine builds more bars from live snapshots each tick."""
         if not self.broker or not getattr(self.broker, 'connected', False):
             return
         try:
@@ -486,7 +487,10 @@ class LiveEngine:
         return compute_forecast_for(epic, df)
 
     def scan_symbol(self, epic: str) -> Optional[dict]:
-        if not self.bars.get(epic):
+        # Only attempt backfill once per session per epic to avoid
+        # hammering the IG historical-data API (10k bars/day on demo).
+        if not self.bars.get(epic) and epic not in self._backfill_attempted:
+            self._backfill_attempted.add(epic)
             self._backfill_history(epic)
         quote = self._fetch_quote(epic)
         if not quote:
@@ -879,11 +883,8 @@ class LiveEngine:
         else:
             if not self.universe:
                 self.universe = self.universe_resolver() or []
-        # Always put 24/7 crypto first
-        priority = ['CS.D.BITCOIN.CFBMU.IP', 'CS.D.BITCOIN.CFD.IP',
-                    'CS.D.ETHEREUM.CFBMU.IP']
-        ordered = [e for e in priority if e in self.universe] + \
-                  [e for e in self.universe if e not in priority]
+        # Forex majors first (highest poll_priority), rest follow by priority order
+        ordered = list(self.universe)  # already sorted by priority from rotator.current()
         actions = []
         signals_recorded = 0
         opportunities_recorded = 0
