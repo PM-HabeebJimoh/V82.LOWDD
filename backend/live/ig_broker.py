@@ -39,6 +39,39 @@ except ImportError as e:
     IG_AVAILABLE = False
     logger.error(f"trading_ig not installed: {e}")
 
+# ── Pandas-version compat shim ──────────────────────────────────────
+# trading_ig's conv_resol() builds a dict keyed by
+# pandas.tseries.frequencies.to_offset("ME") to detect month-end
+# resolution. The "ME" alias only exists on pandas >= 2.2; on the
+# pandas version pinned in this project (2.1.x) to_offset("ME") raises
+# ValueError, which crashes EVERY call to fetch_historical_prices_by_epic
+# regardless of what resolution was actually requested (get_historical_prices
+# silently swallows it and returns None, so calling code never sees a real
+# error — this looked like "no historical data available" but was actually
+# an unrelated pandas/trading_ig version mismatch).
+if IG_AVAILABLE:
+    try:
+        import trading_ig.rest as _ig_rest
+
+        def _safe_conv_resol(resolution):
+            _map = {
+                '1s': 'SECOND', '1min': 'MINUTE', '2min': 'MINUTE_2',
+                '3min': 'MINUTE_3', '5min': 'MINUTE_5', '10min': 'MINUTE_10',
+                '15min': 'MINUTE_15', '30min': 'MINUTE_30', '1h': 'HOUR',
+                '2h': 'HOUR_2', '3h': 'HOUR_3', '4h': 'HOUR_4', 'd': 'DAY',
+                'w': 'WEEK', 'm': 'MONTH', 'me': 'MONTH',
+            }
+            key = str(resolution).strip().lower()
+            if key in _map:
+                return _map[key]
+            # Already an IG-style resolution string (e.g. 'MINUTE_5') — pass through.
+            return resolution
+
+        _ig_rest.conv_resol = _safe_conv_resol
+        logger.info("Patched trading_ig.conv_resol for pandas %s compat", __import__('pandas').__version__)
+    except Exception as e:
+        logger.warning(f"Could not patch trading_ig conv_resol: {e}")
+
 
 @dataclass
 class IGOrder:

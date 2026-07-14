@@ -429,6 +429,49 @@ class LiveEngine:
         if len(self.bars[epic]) > 500:
             self.bars[epic] = self.bars[epic][-500:]
 
+    # ─── Historical backfill ──────────────────────────
+    # Without this, every symbol starts "blind": the first tick after the
+    # engine boots has zero bars, so trend/streak/ret_3 can only be computed
+    # from whatever accumulates minute-by-minute going forward — meaning a
+    # freshly (re)started engine cannot see any price action (e.g. "the
+    # market moved yesterday") that happened before this process started.
+    # We seed each symbol once with real IG historical bars the first time
+    # it's scanned, then keep extending with live snapshot bars as before.
+    def _backfill_history(self, epic: str, resolution: str = 'MINUTE_5',
+                          num_points: int = 288):
+        """Seed self.bars[epic] with ~24h of real IG historical bars
+        (288 x 5-minute candles) so forecasts reflect genuine recent market
+        structure immediately, not just live ticks collected since boot."""
+        if not self.broker or not getattr(self.broker, 'connected', False):
+            return
+        try:
+            df = self.broker.get_historical_prices(
+                epic, resolution=resolution, num_points=num_points)
+            if df is None or df.empty:
+                return
+            bars = []
+            for ts, row in df.iterrows():
+                try:
+                    o, h, l, c = float(row['Open']), float(row['High']), \
+                        float(row['Low']), float(row['Close'])
+                    if o <= 0 or h <= 0 or l <= 0 or c <= 0:
+                        continue
+                    bars.append(LiveBar(
+                        timestamp=pd.Timestamp(ts).to_pydatetime(),
+                        open=o, high=h, low=l, close=c,
+                        volume=float(row.get('Volume', 0) or 0),
+                    ))
+                except Exception:
+                    continue
+            bars.sort(key=lambda b: b.timestamp)
+            if bars:
+                self.bars[epic] = bars[-500:]
+                logger.info(
+                    f"Backfilled {epic}: {len(bars)} historical {resolution} "
+                    f"bars (real IG data, ~{len(bars) * 5 / 60:.1f}h)")
+        except Exception as e:
+            logger.debug(f"backfill failed for {epic}: {e}")
+
     # ─── Forecast (per-class, adaptive, works with class.min_bars) ──
     def _compute_forecast(self, epic: str) -> Optional[dict]:
         bars = self.bars.get(epic, [])
@@ -443,6 +486,8 @@ class LiveEngine:
         return compute_forecast_for(epic, df)
 
     def scan_symbol(self, epic: str) -> Optional[dict]:
+        if not self.bars.get(epic):
+            self._backfill_history(epic)
         quote = self._fetch_quote(epic)
         if not quote:
             return None
